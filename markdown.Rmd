@@ -1,0 +1,58 @@
+---
+title: "PML prediction"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+We are performing an analysis on the classe variable using the accelerometers variables (12 in total - belt, forearm, arm, dumbell and for each of those 3 axes - x, y, z).
+First thing to note is that classe is a categorical value, therefore classical linear and non-linear model are not a good choice. Here a good choice seems something like a random forest
+
+Let's look at the histograms of the belt accelerometer in all three axes. Histograms show that there are more separated significant histogram parts. This is true for almost all of the accelerometers although sometimes not as clearly. This further suggests that some sort of random forest analysis or PCA could yield good results. 
+
+```{r echo = FALSE, warning=FALSE, message=FALSE}
+training <- read.csv("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv")
+ind <- c(which(startsWith(colnames(training), "accel")), 160)
+training1 <- training[, ind]
+library(ggplot2)
+qplot(training[1:1000, 42], xlab = "Forearm, x-axis")
+qplot(training[1:1000, 43], xlab = "Forearm, y-axis")
+qplot(training[1:1000, 44], xlab = "Forearm, z-axis")
+library(caret)
+library(rattle)
+```
+
+Let's build a model based on regression trees. We could furthermore use PCA preprocessing, where only 5 components would suffice to explain 80 percent variability but in the interest of using all the variables, we will skip this.
+```{r warning=FALSE, message = FALSE}
+
+model <- train(classe ~. , method = "rpart", data = training1)
+
+fancyRpartPlot(model$final)
+
+```
+
+Let's now try random forests.
+
+```{r warning=FALSE, message = FALSE}
+
+model1 <- train(classe ~. , method = "rf", data = training1)
+
+plot(model1$finalModel)
+
+```
+
+It seems that random forest explains the data very well. Therefore, we will use this model for predictions. Following are the predicted results.
+
+
+```{r warning=FALSE, message = FALSE}
+testing <- read.csv("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv")
+ind1 <- c(which(startsWith(colnames(training), "accel")))
+testing1 <- testing[,ind1]
+pred <- predict(model1, testing1)
+pred
+
+```
